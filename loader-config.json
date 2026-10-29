@@ -1,0 +1,17 @@
+{
+  "appId": "pixelcharm",
+  "enabled": true,
+  "productName": "Pixelcharm",
+  "versionText": "v1.0.0",
+  "tagline": "Creative Canvas & Photo Magic",
+  "artistName": "Anything Creative Ecosystem",
+  "artworkTitle": "Adobe & Canva Fusion Master Edition",
+  "durationMs": 2600,
+  "logoText": "PC",
+  "badgeGradient": "linear-gradient(135deg, #00f5ff 0%, #a855f7 50%, #ec4899 100%)",
+  "artworkUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1400&q=85",
+  "artworkFit": "cover",
+  "artworkPosition": "center",
+  "author": "Burhanuddin Sounasath",
+  "contactPhone": "8369811201"
+}
