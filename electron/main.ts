@@ -17,6 +17,21 @@ let splashCompleted = false;
 // Only use dev server when explicitly running in live development mode with dedicated port
 const isDev = process.env.NODE_ENV === 'development' && !!process.env.VITE_DEV_SERVER_URL;
 
+function getAppIndexPath(): string {
+  const candidates = [
+    path.join(__dirname, '../dist/index.html'),
+    path.join(app.getAppPath(), 'dist/index.html'),
+    path.join(app.getAppPath(), 'index.html'),
+    path.join(process.resourcesPath, 'app.asar/dist/index.html')
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
 function createWindow(showImmediately = false) {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -24,8 +39,9 @@ function createWindow(showImmediately = false) {
     minWidth: 1024,
     minHeight: 700,
     title: 'Pixelcharm — Creative Canvas & Photo Magic',
-    backgroundColor: '#0a0a0c',
+    backgroundColor: '#181818',
     darkTheme: true,
+    autoHideMenuBar: true,
     show: showImmediately, // Kept hidden until splash completes
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -37,94 +53,36 @@ function createWindow(showImmediately = false) {
 
   nativeTheme.themeSource = 'dark';
 
-  // Construct Custom Native Menu
-  const template: Electron.MenuItemConstructorOptions[] = [
-    {
-      label: 'File',
-      submenu: [
-        {
-          label: 'Open Photoshop (.psd, .psb) or Project...',
-          accelerator: 'CmdOrCtrl+O',
-          click: async () => {
-            if (!mainWindow) return;
-            const res = await handleFileOpen();
-            if (res) {
-              mainWindow.webContents.send('app:open-file', res);
-            }
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Save Project',
-          accelerator: 'CmdOrCtrl+S',
-          click: () => {
-            mainWindow?.webContents.send('menu:save-project');
-          }
-        },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
-    },
-    {
-      label: 'Edit',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' }
-      ]
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
-    },
-    {
-      label: 'Help',
-      submenu: [
-        {
-          label: 'About Pixelcharm',
-          click: () => {
-            dialog.showMessageBox(mainWindow!, {
-              type: 'info',
-              title: 'About Pixelcharm',
-              message: 'Pixelcharm Studio v1.0.0',
-              detail: 'Creative Canvas & Photo Magic for the Anything Apps Ecosystem.\nFusing Canva fluid vector layout with Adobe Photoshop raster layer fidelity.'
-            });
-          }
-        }
-      ]
-    }
-  ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
+  // Completely disable native Win32 window menu bar so Photoshop dark menu bar is the sole top bar
+  Menu.setApplicationMenu(null);
+  mainWindow.setMenuBarVisibility(false);
 
   // Load appropriate URL
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
   if (isDev && devServerUrl) {
-    console.log('[Pixycharm] Connecting to development server:', devServerUrl);
+    console.log('[Pixelcharm] Connecting to development server:', devServerUrl);
     mainWindow.loadURL(devServerUrl).catch((err) => {
-      console.warn('[Pixycharm] Failed to connect to dev server, falling back to dist/index.html:', err);
-      mainWindow?.loadFile(path.join(__dirname, '../dist/index.html'));
+      console.warn('[Pixelcharm] Failed to connect to dev server, falling back to dist/index.html:', err);
+      const fallback = getAppIndexPath();
+      mainWindow?.loadFile(fallback);
     });
   } else {
-    const indexPath = path.join(__dirname, '../dist/index.html');
-    console.log('[Pixycharm] Loading bundled application from:', indexPath);
-    mainWindow.loadFile(indexPath);
+    const indexPath = getAppIndexPath();
+    console.log('[Pixelcharm] Loading bundled application from:', indexPath);
+    mainWindow.loadFile(indexPath).catch((err) => {
+      console.error('[Pixelcharm] Failed to load index file:', err);
+    });
   }
+
+  // Auto-recovery if initial dev server load fails
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.warn('[Pixelcharm] WebContents failed to load:', validatedURL, errorCode, errorDescription);
+    const fallback = getAppIndexPath();
+    if (fs.existsSync(fallback) && !validatedURL.includes('index.html')) {
+      console.log('[Pixelcharm] Recovering by loading bundled index.html:', fallback);
+      mainWindow?.loadFile(fallback);
+    }
+  });
 
   // Handle files passed via Windows CLI / File association (e.g. double clicking a .psd)
   mainWindow.webContents.on('did-finish-load', () => {

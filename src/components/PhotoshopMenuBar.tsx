@@ -15,6 +15,7 @@ export const PhotoshopMenuBar: React.FC = () => {
     openPhotoshopFile,
     importProjectJson,
     exportProjectJson,
+    addNewLayer,
     deleteLayer,
     duplicateLayer,
     selectedLayerId,
@@ -28,7 +29,8 @@ export const PhotoshopMenuBar: React.FC = () => {
     fitToScreen,
     setShowCameraRawModal,
     setShowHueSatModal,
-    setShowLevelsModal
+    setShowLevelsModal,
+    setActiveTool
   } = useStudio();
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -45,6 +47,86 @@ export const PhotoshopMenuBar: React.FC = () => {
     window.addEventListener('mousedown', handleClickOutside);
     return () => window.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Global Photoshop Keyboard Shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if (isCtrlOrCmd) {
+        const key = e.key.toLowerCase();
+        if (key === 'o') {
+          e.preventDefault();
+          handleOpenNativeOrWeb();
+        } else if (key === 's') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            exportPsd();
+          } else {
+            exportProjectJson();
+          }
+        } else if (key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            redo();
+          } else {
+            undo();
+          }
+        } else if (key === 'y') {
+          e.preventDefault();
+          redo();
+        } else if (key === 't') {
+          e.preventDefault();
+          setShowTemplatesModal(true);
+        } else if (key === 'n') {
+          e.preventDefault();
+          addNewLayer();
+        } else if (key === '=' || key === '+') {
+          e.preventDefault();
+          zoomIn();
+        } else if (key === '-') {
+          e.preventDefault();
+          zoomOut();
+        } else if (key === '0') {
+          e.preventDefault();
+          fitToScreen();
+        }
+        return;
+      }
+
+      if (!isInput) {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          if (selectedLayerId) {
+            e.preventDefault();
+            deleteLayer(selectedLayerId);
+          }
+        } else {
+          const k = e.key.toLowerCase();
+          switch (k) {
+            case 'v': setActiveTool('move'); break;
+            case 'm': setActiveTool('marquee'); break;
+            case 'l': setActiveTool('lasso'); break;
+            case 'w': setActiveTool('magic-wand'); break;
+            case 'c': setActiveTool('crop'); break;
+            case 'i': setActiveTool('eyedropper'); break;
+            case 'b': setActiveTool('brush'); break;
+            case 's': setActiveTool('clone-stamp'); break;
+            case 'e': setActiveTool('eraser'); break;
+            case 'g': setActiveTool('gradient'); break;
+            case 'p': setActiveTool('pen'); break;
+            case 't': setActiveTool('text'); break;
+            case 'u': setActiveTool('shape'); break;
+            case 'h': setActiveTool('hand'); break;
+            case 'z': setActiveTool('zoom'); break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectedLayerId, undo, redo, exportPsd, exportProjectJson, addNewLayer, deleteLayer, zoomIn, zoomOut, fitToScreen, setActiveTool, setShowTemplatesModal]);
 
   const handleOpenNativeOrWeb = async () => {
     setActiveMenu(null);
