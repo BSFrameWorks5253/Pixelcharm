@@ -41,6 +41,8 @@ export const PhotoshopStatusBar: React.FC = () => {
         )}
         <div className="h-3 w-[1px] bg-[#333333]" />
         <span className="capitalize">{activeTool} Tool Active</span>
+        <div className="h-3 w-[1px] bg-[#333333]" />
+        <span className="text-[#666666]">sRGB IEC61966-2.1 (8bpc)</span>
       </div>
     </div>
   );

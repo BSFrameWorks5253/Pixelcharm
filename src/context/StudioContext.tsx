@@ -111,6 +111,9 @@ interface StudioContextType {
   exportPsd: () => Promise<void>;
 
   // Modal Dialogs
+  showNewDocModal: boolean;
+  setShowNewDocModal: (show: boolean) => void;
+  createNewDocument: (width: number, height: number, background?: string, title?: string) => void;
   showTemplatesModal: boolean;
   setShowTemplatesModal: (show: boolean) => void;
   showEvidenceModal: boolean;
@@ -165,6 +168,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [smartGuides, setSmartGuides] = useState<SmartGuide[]>([]);
 
   // Modals
+  const [showNewDocModal, setShowNewDocModal] = useState<boolean>(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState<boolean>(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState<boolean>(false);
   const [showCameraRawModal, setShowCameraRawModal] = useState<boolean>(false);
@@ -215,6 +219,57 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     },
     [historyIndex, documentState]
   );
+
+  const createNewDocument = useCallback((w: number, h: number, bg = '#ffffff', title = 'Untitled-1') => {
+    const bgLayer: Layer = {
+      id: 'bg-layer-' + Date.now(),
+      name: 'Background',
+      type: 'shape',
+      shapeType: 'rect',
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      rotation: 0,
+      opacity: 1,
+      visible: true,
+      locked: true,
+      blendMode: 'normal',
+      fill: bg,
+      stroke: 'transparent',
+      strokeWidth: 0,
+      borderRadius: 0
+    };
+
+    const nextDoc: DocumentState = {
+      title,
+      width: w,
+      height: h,
+      background: bg,
+      zoom: 0.85,
+      panX: 0,
+      panY: 0
+    };
+
+    setDocumentState(nextDoc);
+    setLayers([bgLayer]);
+    setSelectedLayerId(bgLayer.id);
+    setHistoryStack([
+      {
+        id: 'init-' + Date.now(),
+        layers: [bgLayer],
+        document: {
+          width: w,
+          height: h,
+          background: bg
+        },
+        description: 'New Document Created',
+        timestamp: Date.now()
+      }
+    ]);
+    setHistoryIndex(0);
+    setShowNewDocModal(false);
+  }, []);
 
   const selectedLayer = layers.find((l) => l.id === selectedLayerId) || null;
 
@@ -982,6 +1037,9 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         importProjectJson,
         openPhotoshopFile,
         exportPsd,
+        showNewDocModal,
+        setShowNewDocModal,
+        createNewDocument,
         showTemplatesModal,
         setShowTemplatesModal,
         showEvidenceModal,

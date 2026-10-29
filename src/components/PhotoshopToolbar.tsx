@@ -5,6 +5,9 @@ import {
   Paintbrush,
   Type,
   Square,
+  Circle,
+  Triangle,
+  Star,
   Hand,
   ZoomIn,
   ChevronsRight,
@@ -16,9 +19,11 @@ import {
   MousePointer,
   Lasso,
   Wand2,
-  Blend
+  Blend,
+  Maximize2
 } from 'lucide-react';
 import { useStudio, ToolType } from '../context/StudioContext';
+import { ShapeType } from '../types';
 
 export const PhotoshopToolbar: React.FC = () => {
   const {
@@ -29,11 +34,13 @@ export const PhotoshopToolbar: React.FC = () => {
     brushColor,
     setBrushColor,
     zoomIn,
-    activeShapeType
+    activeShapeType,
+    setActiveShapeType
   } = useStudio();
 
   const [isTwoColumn, setIsTwoColumn] = useState<boolean>(false);
   const [backgroundColor, setBackgroundColor] = useState<string>('#ffffff');
+  const [shapeFlyoutOpen, setShapeFlyoutOpen] = useState(false);
 
   // Swap Foreground / Background colors (X key)
   const swapColors = () => {
@@ -53,28 +60,36 @@ export const PhotoshopToolbar: React.FC = () => {
     label: string,
     shortcut: string,
     icon: React.ReactNode,
-    onClick?: () => void
+    onClick?: () => void,
+    hasFlyout = false,
+    onContextMenu?: (e: React.MouseEvent) => void
   ) => {
     // Note: 'select' and 'move' both map to Move tool
     const isSelected = activeTool === tool || (tool === 'move' && activeTool === 'select');
     return (
       <button
         onClick={onClick || (() => setActiveTool(tool))}
+        onContextMenu={onContextMenu}
         className={`w-7 h-7 flex items-center justify-center rounded-sm transition-all group relative ${
           isSelected
-            ? 'bg-[#323232] text-white border border-[#4a4a4a] shadow-sm'
-            : 'text-[#aaaaaa] hover:text-[#ffffff] hover:bg-[#323232]'
+            ? 'bg-[#383838] text-white border border-[#525252] shadow-sm'
+            : 'text-[#aaaaaa] hover:text-[#ffffff] hover:bg-[#2c2c2c]'
         }`}
         title={`${label} (${shortcut})`}
       >
         {icon}
+        {hasFlyout && (
+          <svg className="absolute bottom-0.5 right-0.5 w-1 h-1 fill-current opacity-70" viewBox="0 0 4 4">
+            <polygon points="4,0 4,4 0,4" />
+          </svg>
+        )}
       </button>
     );
   };
 
   return (
     <aside
-      className={`bg-[#1e1e1e] border-r border-[#111111] flex flex-col items-center py-1 select-none z-40 transition-all font-sans ${
+      className={`bg-[#1e1e1e] border-r border-[#111111] flex flex-col items-center py-1 select-none z-40 transition-all font-sans relative ${
         isTwoColumn ? 'w-16' : 'w-9'
       }`}
     >
@@ -89,69 +104,123 @@ export const PhotoshopToolbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Standard Tools Container */}
+      {/* Standard Photoshop Tools Container */}
       <div
         className={`flex flex-col gap-0.5 ${
           isTwoColumn ? 'grid grid-cols-2 gap-0.5 px-1' : 'items-center'
         }`}
       >
         {/* 1. Move Tool (V) */}
-        {toolButton('move', 'Move Tool', 'V', <Move className="w-4 h-4" />, () => setActiveTool('move'))}
+        {toolButton('move', 'Move Tool', 'V', <Move className="w-4 h-4" />, () => setActiveTool('move'), true)}
 
         {/* 2. Rectangular Marquee Tool (M) */}
         {toolButton(
           'marquee',
           'Rectangular Marquee Tool',
           'M',
-          <div className="w-3.5 h-3.5 border border-dashed border-current" />
+          <div className="w-3.5 h-3.5 border border-dashed border-current" />,
+          undefined,
+          true
         )}
 
         {/* 3. Lasso Tool (L) */}
-        {toolButton('lasso', 'Lasso Tool', 'L', <Lasso className="w-3.5 h-3.5" />)}
+        {toolButton('lasso', 'Lasso Tool', 'L', <Lasso className="w-3.5 h-3.5" />, undefined, true)}
 
         {/* 4. Magic Wand Tool (W) */}
-        {toolButton('magic-wand', 'Magic Wand Tool', 'W', <Wand2 className="w-3.5 h-3.5" />)}
+        {toolButton('magic-wand', 'Magic Wand Tool', 'W', <Wand2 className="w-3.5 h-3.5" />, undefined, true)}
 
         {/* 5. Crop Tool (C) */}
         {toolButton('crop', 'Crop Tool', 'C', <Crop className="w-4 h-4" />)}
 
         {/* 6. Eyedropper Tool (I) */}
-        {toolButton('eyedropper', 'Eyedropper Tool', 'I', <Pipette className="w-3.5 h-3.5" />)}
+        {toolButton('eyedropper', 'Eyedropper Tool', 'I', <Pipette className="w-3.5 h-3.5" />, undefined, true)}
 
         {/* 7. Brush Tool (B) */}
-        {toolButton('brush', 'Brush Tool', 'B', <Paintbrush className="w-4 h-4" />)}
+        {toolButton('brush', 'Brush Tool', 'B', <Paintbrush className="w-4 h-4" />, undefined, true)}
 
         {/* 8. Clone Stamp Tool (S) */}
-        {toolButton('clone-stamp', 'Clone Stamp Tool', 'S', <Stamp className="w-3.5 h-3.5" />)}
+        {toolButton('clone-stamp', 'Clone Stamp Tool', 'S', <Stamp className="w-3.5 h-3.5" />, undefined, true)}
 
         {/* 9. Eraser Tool (E) */}
-        {toolButton('eraser', 'Eraser Tool', 'E', <Eraser className="w-3.5 h-3.5" />)}
+        {toolButton('eraser', 'Eraser Tool', 'E', <Eraser className="w-3.5 h-3.5" />, undefined, true)}
 
         {/* 10. Gradient Tool (G) */}
-        {toolButton('gradient', 'Gradient Tool', 'G', <Blend className="w-3.5 h-3.5" />)}
+        {toolButton('gradient', 'Gradient Tool', 'G', <Blend className="w-3.5 h-3.5" />, undefined, true)}
 
         {/* 11. Pen Tool (P) */}
-        {toolButton('pen', 'Pen Tool', 'P', <PenTool className="w-3.5 h-3.5" />)}
+        {toolButton('pen', 'Pen Tool', 'P', <PenTool className="w-3.5 h-3.5" />, undefined, true)}
 
         {/* 12. Text Tool (T) */}
         {toolButton('text', 'Horizontal Type Tool', 'T', <Type className="w-4 h-4" />, () => {
           setActiveTool('text');
           addTextLayer();
-        })}
+        }, true)}
 
         {/* 13. Path Selection Tool (A) */}
-        {toolButton('path-selection', 'Path Selection Tool', 'A', <MousePointer className="w-3.5 h-3.5" />)}
+        {toolButton('path-selection', 'Path Selection Tool', 'A', <MousePointer className="w-3.5 h-3.5" />, undefined, true)}
 
-        {/* Shapes Helper Tool (U) */}
-        {toolButton('shape', 'Rectangle Tool', 'U', <Square className="w-4 h-4" />, () => {
-          setActiveTool('shape');
-          addShapeLayer(activeShapeType);
-        })}
+        {/* 14. Shapes Helper Tool (U) with Flyout */}
+        <div className="relative">
+          {toolButton(
+            'shape',
+            `${activeShapeType.toUpperCase()} Tool`,
+            'U',
+            activeShapeType === 'circle' ? (
+              <Circle className="w-3.5 h-3.5" />
+            ) : activeShapeType === 'triangle' ? (
+              <Triangle className="w-3.5 h-3.5" />
+            ) : activeShapeType === 'star' ? (
+              <Star className="w-3.5 h-3.5" />
+            ) : (
+              <Square className="w-4 h-4" />
+            ),
+            () => {
+              setActiveTool('shape');
+              addShapeLayer(activeShapeType);
+            },
+            true,
+            (e) => {
+              e.preventDefault();
+              setShapeFlyoutOpen(!shapeFlyoutOpen);
+            }
+          )}
 
-        {/* 14. Hand Tool (H) */}
-        {toolButton('hand', 'Hand Tool', 'H', <Hand className="w-4 h-4" />)}
+          {/* Shapes Nested Flyout Menu */}
+          {shapeFlyoutOpen && (
+            <div className="absolute left-8 top-0 bg-[#2b2b2b] border border-[#3e3e3e] shadow-2xl rounded p-1 z-50 flex flex-col gap-1 w-44 text-[11px] text-[#cccccc]">
+              {[
+                { type: 'rect' as ShapeType, label: 'Rectangle Tool', icon: Square, key: 'U' },
+                { type: 'circle' as ShapeType, label: 'Ellipse Tool', icon: Circle, key: 'U' },
+                { type: 'triangle' as ShapeType, label: 'Triangle Tool', icon: Triangle, key: 'U' },
+                { type: 'star' as ShapeType, label: 'Star Tool', icon: Star, key: 'U' }
+              ].map(({ type, label, icon: SIcon, key }) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setActiveShapeType(type);
+                    setActiveTool('shape');
+                    addShapeLayer(type);
+                    setShapeFlyoutOpen(false);
+                  }}
+                  className={`flex items-center justify-between px-2 py-1 rounded hover:bg-[#007acc] hover:text-white ${
+                    activeShapeType === type ? 'bg-[#383838] text-white font-medium' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <SIcon className="w-3.5 h-3.5" />
+                    <span>{label}</span>
+                  </div>
+                  <span className="text-[#888888] font-mono text-[10px]">{key}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-        {/* 15. Zoom Tool (Z) */}
+        {/* 15. Hand Tool (H) */}
+        {toolButton('hand', 'Hand Tool', 'H', <Hand className="w-4 h-4" />, undefined, true)}
+
+        {/* 16. Zoom Tool (Z) */}
         {toolButton('zoom', 'Zoom Tool', 'Z', <ZoomIn className="w-4 h-4" />, () => {
           setActiveTool('zoom');
           zoomIn();
@@ -165,7 +234,7 @@ export const PhotoshopToolbar: React.FC = () => {
         {/* Reset Default Colors (Black & White mini icon - D key) */}
         <button
           onClick={resetDefaultColors}
-          className="absolute -top-3 left-0 flex items-center group"
+          className="absolute -top-3 left-0 flex items-center group p-0.5"
           title="Default Foreground and Background Colors (D)"
         >
           <div className="w-2 h-2 bg-black border border-white group-hover:scale-110" />
@@ -175,7 +244,7 @@ export const PhotoshopToolbar: React.FC = () => {
         {/* Swap Colors (Arrow icon - X key) */}
         <button
           onClick={swapColors}
-          className="absolute -top-3 right-0 text-[#888] hover:text-white transition-colors text-[9px]"
+          className="absolute -top-3 right-0 text-[#888] hover:text-white transition-colors text-[9px] font-bold"
           title="Switch Foreground and Background Colors (X)"
         >
           ⇄
@@ -183,7 +252,7 @@ export const PhotoshopToolbar: React.FC = () => {
 
         {/* Background Color Square (Underneath) */}
         <label
-          className="absolute bottom-0 right-0 w-4 h-4 border border-[#111] shadow cursor-pointer"
+          className="absolute bottom-0 right-0 w-4.5 h-4.5 border border-[#111] shadow cursor-pointer rounded-xs"
           style={{ backgroundColor: backgroundColor }}
           title="Set Background Color"
         >
@@ -197,7 +266,7 @@ export const PhotoshopToolbar: React.FC = () => {
 
         {/* Foreground Color Square (On Top) */}
         <label
-          className="absolute top-0 left-0 w-4 h-4 border border-[#ffffff] shadow-lg cursor-pointer z-10"
+          className="absolute top-0 left-0 w-4.5 h-4.5 border border-[#ffffff] shadow-lg cursor-pointer z-10 rounded-xs"
           style={{ backgroundColor: brushColor }}
           title="Set Foreground Color"
         >

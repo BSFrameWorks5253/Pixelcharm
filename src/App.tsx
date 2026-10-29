@@ -13,6 +13,7 @@ import { EvidenceModal } from './components/EvidenceModal';
 import { CameraRawFilterModal } from './components/CameraRawFilterModal';
 import { HueSaturationModal } from './components/HueSaturationModal';
 import { LevelsModal } from './components/LevelsModal';
+import { NewDocumentModal } from './components/NewDocumentModal';
 
 export const AppContent: React.FC = () => {
   return (
@@ -44,6 +45,7 @@ export const AppContent: React.FC = () => {
       <PhotoshopStatusBar />
 
       {/* Modals & Photoshop Dialogs */}
+      <NewDocumentModal />
       <TemplatesModal />
       <EvidenceModal />
       <CameraRawFilterModal />

@@ -30,7 +30,9 @@ export const PhotoshopMenuBar: React.FC = () => {
     setShowCameraRawModal,
     setShowHueSatModal,
     setShowLevelsModal,
-    setActiveTool
+    setActiveTool,
+    showNewDocModal,
+    setShowNewDocModal
   } = useStudio();
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -81,7 +83,11 @@ export const PhotoshopMenuBar: React.FC = () => {
           setShowTemplatesModal(true);
         } else if (key === 'n') {
           e.preventDefault();
-          addNewLayer();
+          if (e.shiftKey) {
+            addNewLayer();
+          } else {
+            setShowNewDocModal(true);
+          }
         } else if (key === '=' || key === '+') {
           e.preventDefault();
           zoomIn();
@@ -208,6 +214,16 @@ export const PhotoshopMenuBar: React.FC = () => {
             </button>
             {activeMenu === 'File' && (
               <div className="absolute left-0 top-7 w-60 bg-[#2b2b2b] border border-[#1c1c1c] shadow-2xl py-1 z-50 text-[11px] rounded-sm">
+                <button
+                  onClick={() => {
+                    setShowNewDocModal(true);
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-4 py-1.5 flex justify-between hover:bg-[#007acc] hover:text-white text-left font-medium"
+                >
+                  <span>New...</span>
+                  <span className="text-[#888] font-mono">Ctrl+N</span>
+                </button>
                 <button
                   onClick={handleOpenNativeOrWeb}
                   className="w-full px-4 py-1.5 flex justify-between hover:bg-[#007acc] hover:text-white text-left"

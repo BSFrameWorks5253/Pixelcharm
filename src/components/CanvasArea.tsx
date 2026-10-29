@@ -31,7 +31,8 @@ export const CanvasArea: React.FC = () => {
     setSmartGuides,
     canvasRef,
     containerRef,
-    setMouseCoords
+    setMouseCoords,
+    setZoom
   } = useStudio();
 
   // Dragging & Interaction States
@@ -459,9 +460,18 @@ export const CanvasArea: React.FC = () => {
       })
     : null;
 
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom(Math.max(0.1, Math.min(4, Number((documentState.zoom + delta).toFixed(2)))));
+    }
+  };
+
   return (
     <div
       ref={containerRef}
+      onWheel={handleWheel}
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
       onMouseDown={handleMouseDown}
