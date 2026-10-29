@@ -26,11 +26,19 @@ import {
   ChevronUp,
   ChevronDown,
   Layers,
-  CircleDot
+  CircleDot,
+  Code,
+  Shapes,
+  Component,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignVerticalJustifyCenter,
+  AlignHorizontalJustifyCenter
 } from 'lucide-react';
 import { useStudio } from '../context/StudioContext';
 import { BLEND_MODE_LABELS } from '../engine/blendModes';
-import { BlendMode, Layer } from '../types';
+import { BlendMode, Layer, ShapeLayer } from '../types';
 
 export const PhotoshopRightDock: React.FC = () => {
   const {
@@ -52,14 +60,20 @@ export const PhotoshopRightDock: React.FC = () => {
     setShowHueSatModal,
     setShowLevelsModal,
     bringForward,
-    sendBackward
+    sendBackward,
+    applyPathfinder,
+    setShowSvgEditorModal,
+    workspaceMode,
+    exportSvgDocument,
+    exportAiDocument,
+    copySvgCode
   } = useStudio();
 
   // Top Section Tab (Color vs Swatches)
   const [topTab, setTopTab] = useState<'color' | 'swatches'>('color');
 
-  // Middle Section Tab (Adjustments vs Properties vs History)
-  const [middleTab, setMiddleTab] = useState<'adjustments' | 'properties' | 'history'>('properties');
+  // Middle Section Tab (Adjustments vs Properties vs History vs Pathfinder)
+  const [middleTab, setMiddleTab] = useState<'adjustments' | 'properties' | 'history' | 'pathfinder'>('properties');
 
   // Bottom Section Tab (Layers vs Channels vs Paths)
   const [bottomTab, setBottomTab] = useState<'layers' | 'channels' | 'paths'>('layers');
@@ -209,10 +223,22 @@ export const PhotoshopRightDock: React.FC = () => {
             >
               History
             </button>
+            <button
+              onClick={() => setMiddleTab('pathfinder')}
+              className={`px-2 py-1 text-[10px] font-semibold tracking-wider uppercase transition-colors rounded-t flex items-center gap-1 ${
+                middleTab === 'pathfinder'
+                  ? 'bg-[#1e1e1e] text-[#ff9a00] border-t border-l border-r border-[#3a3a3a]'
+                  : 'text-[#888888] hover:text-[#ff9a00]'
+              }`}
+            >
+              <span>Pathfinder</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ff9a00]" />
+            </button>
           </div>
           {middleTab === 'properties' && <Sliders className="w-3.5 h-3.5 text-[#666666]" />}
           {middleTab === 'adjustments' && <Sparkles className="w-3.5 h-3.5 text-[#666666]" />}
           {middleTab === 'history' && <History className="w-3.5 h-3.5 text-[#666666]" />}
+          {middleTab === 'pathfinder' && <Shapes className="w-3.5 h-3.5 text-[#ff9a00]" />}
         </div>
 
         {/* Panel Body */}
@@ -399,6 +425,196 @@ export const PhotoshopRightDock: React.FC = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* PATHFINDER & VECTOR TAB (Adobe Illustrator Suite) */}
+          {middleTab === 'pathfinder' && (
+            <div className="flex flex-col gap-2.5">
+              {/* Shape Modes (Pathfinder) */}
+              <div className="bg-[#242424] p-2 rounded border border-[#2e2e2e]">
+                <div className="text-[10px] uppercase font-semibold text-[#888888] mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[#ff9a00]">
+                    <span className="w-3.5 h-3.5 rounded bg-[#ff9a00] text-black font-black text-[7px] flex items-center justify-center">Ai</span>
+                    Shape Modes (Pathfinder)
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  <button
+                    onClick={() => applyPathfinder('unite')}
+                    className="flex flex-col items-center justify-center p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#3a3a3a] rounded text-[9px] text-[#cccccc] hover:text-[#ff9a00] transition-colors"
+                    title="Unite: Merge overlapping shapes into one continuous vector"
+                  >
+                    <span className="text-[14px] font-bold">⊞</span>
+                    <span className="mt-0.5">Unite</span>
+                  </button>
+                  <button
+                    onClick={() => applyPathfinder('minus-front')}
+                    className="flex flex-col items-center justify-center p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#3a3a3a] rounded text-[9px] text-[#cccccc] hover:text-[#ff9a00] transition-colors"
+                    title="Minus Front: Cut out front shape from the shape beneath"
+                  >
+                    <span className="text-[14px] font-bold">⊟</span>
+                    <span className="mt-0.5">Minus</span>
+                  </button>
+                  <button
+                    onClick={() => applyPathfinder('intersect')}
+                    className="flex flex-col items-center justify-center p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#3a3a3a] rounded text-[9px] text-[#cccccc] hover:text-[#ff9a00] transition-colors"
+                    title="Intersect: Retain only the intersecting region"
+                  >
+                    <span className="text-[14px] font-bold">⊠</span>
+                    <span className="mt-0.5">Intersect</span>
+                  </button>
+                  <button
+                    onClick={() => applyPathfinder('exclude')}
+                    className="flex flex-col items-center justify-center p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#3a3a3a] rounded text-[9px] text-[#cccccc] hover:text-[#ff9a00] transition-colors"
+                    title="Exclude: Remove intersecting overlap (evenodd)"
+                  >
+                    <span className="text-[14px] font-bold">⊘</span>
+                    <span className="mt-0.5">Exclude</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Vector Align & Distribute */}
+              <div className="bg-[#242424] p-2 rounded border border-[#2e2e2e]">
+                <div className="text-[10px] uppercase font-semibold text-[#888888] mb-2 flex items-center justify-between">
+                  <span>Align & Distribute</span>
+                </div>
+                <div className="grid grid-cols-6 gap-1">
+                  <button
+                    onClick={() => {
+                      if (selectedLayer) updateLayer(selectedLayer.id, { x: 0 });
+                    }}
+                    className="p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#333333] rounded flex items-center justify-center text-[#aaaaaa] hover:text-white"
+                    title="Align Left"
+                  >
+                    <AlignLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedLayer) updateLayer(selectedLayer.id, { x: Math.round((1200 - selectedLayer.width) / 2) });
+                    }}
+                    className="p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#333333] rounded flex items-center justify-center text-[#aaaaaa] hover:text-white"
+                    title="Align Horizontal Center"
+                  >
+                    <AlignCenter className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedLayer) updateLayer(selectedLayer.id, { x: 1200 - selectedLayer.width });
+                    }}
+                    className="p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#333333] rounded flex items-center justify-center text-[#aaaaaa] hover:text-white"
+                    title="Align Right"
+                  >
+                    <AlignRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedLayer) updateLayer(selectedLayer.id, { y: 0 });
+                    }}
+                    className="p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#333333] rounded flex items-center justify-center text-[#aaaaaa] hover:text-white"
+                    title="Align Top"
+                  >
+                    <AlignHorizontalJustifyCenter className="w-3.5 h-3.5 rotate-90" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedLayer) updateLayer(selectedLayer.id, { y: Math.round((720 - selectedLayer.height) / 2) });
+                    }}
+                    className="p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#333333] rounded flex items-center justify-center text-[#aaaaaa] hover:text-white"
+                    title="Align Vertical Center"
+                  >
+                    <AlignVerticalJustifyCenter className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedLayer) updateLayer(selectedLayer.id, { y: 720 - selectedLayer.height });
+                    }}
+                    className="p-1.5 bg-[#1e1e1e] hover:bg-[#333333] border border-[#333333] rounded flex items-center justify-center text-[#aaaaaa] hover:text-white"
+                    title="Align Bottom"
+                  >
+                    <AlignHorizontalJustifyCenter className="w-3.5 h-3.5 -rotate-90" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Vector Stroke & Appearance */}
+              {selectedLayer && selectedLayer.type === 'shape' && (
+                <div className="bg-[#242424] p-2 rounded border border-[#2e2e2e] flex flex-col gap-2">
+                  <div className="text-[10px] uppercase font-semibold text-[#888888] flex items-center justify-between">
+                    <span>Vector Stroke & Dash</span>
+                    <span className="text-[#ff9a00] font-mono">{(selectedLayer as ShapeLayer).strokeWidth} pt</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={32}
+                      value={(selectedLayer as ShapeLayer).strokeWidth || 0}
+                      onChange={(e) => updateLayer(selectedLayer.id, { strokeWidth: Number(e.target.value) })}
+                      className="flex-1 accent-[#ff9a00] h-1 bg-[#181818] rounded"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={64}
+                      value={(selectedLayer as ShapeLayer).strokeWidth || 0}
+                      onChange={(e) => updateLayer(selectedLayer.id, { strokeWidth: Math.max(0, Number(e.target.value)) })}
+                      className="w-12 bg-[#1e1e1e] border border-[#333333] text-right px-1 py-0.5 rounded text-white text-[10px]"
+                    />
+                  </div>
+
+                  {/* Dash Style Options */}
+                  <div className="grid grid-cols-3 gap-1 text-[9px]">
+                    <button
+                      onClick={() => updateLayer(selectedLayer.id, { strokeDashArray: undefined })}
+                      className="p-1 bg-[#1e1e1e] hover:bg-[#333333] border border-[#3a3a3a] rounded text-center"
+                    >
+                      Solid
+                    </button>
+                    <button
+                      onClick={() => updateLayer(selectedLayer.id, { strokeDashArray: '6,6' })}
+                      className="p-1 bg-[#1e1e1e] hover:bg-[#333333] border border-[#3a3a3a] rounded text-center"
+                    >
+                      Dashed
+                    </button>
+                    <button
+                      onClick={() => updateLayer(selectedLayer.id, { strokeDashArray: '2,4' })}
+                      className="p-1 bg-[#1e1e1e] hover:bg-[#333333] border border-[#3a3a3a] rounded text-center"
+                    >
+                      Dotted
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Vector SVG Source & Actions */}
+              <div className="bg-[#242424] p-2 rounded border border-[#2e2e2e] flex flex-col gap-1.5">
+                <div className="text-[10px] uppercase font-semibold text-[#888888] mb-1">
+                  Vector Tools & Export
+                </div>
+                <button
+                  onClick={() => setShowSvgEditorModal(true)}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-[#2b2b2b] hover:bg-[#383838] border border-[#444444] rounded text-[11px] text-[#ff9a00] font-medium transition-colors"
+                >
+                  <Code className="w-3.5 h-3.5" />
+                  <span>Inspect & Edit SVG Code...</span>
+                </button>
+                <div className="grid grid-cols-2 gap-1.5 mt-0.5">
+                  <button
+                    onClick={() => exportSvgDocument()}
+                    className="py-1 bg-[#1e1e1e] hover:bg-[#333333] border border-[#333333] rounded text-[10px] text-[#cccccc] hover:text-white"
+                  >
+                    Export .SVG
+                  </button>
+                  <button
+                    onClick={() => exportAiDocument()}
+                    className="py-1 bg-[#331b00] hover:bg-[#4d2900] border border-[#ff9a00]/40 rounded text-[10px] text-[#ff9a00] font-semibold"
+                  >
+                    Export .AI
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

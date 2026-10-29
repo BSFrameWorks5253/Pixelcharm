@@ -99,6 +99,16 @@ export interface TextLayer extends BaseLayer {
   strokeWidth: number;
 }
 
+export type WorkspaceMode = 'photo' | 'vector';
+
+export interface VectorPoint {
+  x: number;
+  y: number;
+  handleIn?: { x: number; y: number };
+  handleOut?: { x: number; y: number };
+  type?: 'corner' | 'smooth';
+}
+
 export interface ShapeLayer extends BaseLayer {
   type: 'shape';
   shapeType: ShapeType;
@@ -107,6 +117,13 @@ export interface ShapeLayer extends BaseLayer {
   strokeWidth: number;
   borderRadius: number;
   sides?: number;
+  pathData?: string;
+  svgContent?: string;
+  strokeDashArray?: string;
+  strokeLineCap?: 'butt' | 'round' | 'square';
+  strokeLineJoin?: 'miter' | 'round' | 'bevel';
+  vectorPoints?: VectorPoint[];
+  isVectorAsset?: boolean;
 }
 
 export interface DrawingLayer extends BaseLayer {

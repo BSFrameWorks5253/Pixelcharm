@@ -27,6 +27,7 @@ export const CanvasArea: React.FC = () => {
     addDrawingLayer,
     addImageLayer,
     openPhotoshopFile,
+    openVectorFile,
     smartGuides,
     setSmartGuides,
     canvasRef,
@@ -164,51 +165,76 @@ export const CanvasArea: React.FC = () => {
         ctx.fillText(layer.text, textX, layer.y);
       }
 
-      // 3. Shape Layer
+      // 3. Shape Layer & Vector Paths
       else if (layer.type === 'shape') {
         ctx.fillStyle = layer.fill;
         ctx.strokeStyle = layer.stroke;
         ctx.lineWidth = layer.strokeWidth;
 
-        ctx.beginPath();
-        if (layer.shapeType === 'rect') {
-          const r = Math.min(layer.borderRadius, layer.width / 2, layer.height / 2);
-          ctx.roundRect(layer.x, layer.y, layer.width, layer.height, r);
-        } else if (layer.shapeType === 'circle') {
-          ctx.ellipse(
-            layer.x + layer.width / 2,
-            layer.y + layer.height / 2,
-            layer.width / 2,
-            layer.height / 2,
-            0,
-            0,
-            Math.PI * 2
-          );
-        } else if (layer.shapeType === 'triangle') {
-          ctx.moveTo(layer.x + layer.width / 2, layer.y);
-          ctx.lineTo(layer.x + layer.width, layer.y + layer.height);
-          ctx.lineTo(layer.x, layer.y + layer.height);
-          ctx.closePath();
-        } else if (layer.shapeType === 'star') {
-          const points = layer.sides || 5;
-          const outerR = Math.min(layer.width, layer.height) / 2;
-          const innerR = outerR * 0.45;
-          const cx = layer.x + layer.width / 2;
-          const cy = layer.y + layer.height / 2;
-
-          for (let i = 0; i < points * 2; i++) {
-            const r = i % 2 === 0 ? outerR : innerR;
-            const angle = (i * Math.PI) / points - Math.PI / 2;
-            const x = cx + r * Math.cos(angle);
-            const y = cy + r * Math.sin(angle);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
+        if (layer.strokeDashArray) {
+          try {
+            ctx.setLineDash(layer.strokeDashArray.split(',').map(Number));
+          } catch {}
+        } else {
+          ctx.setLineDash([]);
         }
 
-        if (layer.fill && layer.fill !== 'transparent') ctx.fill();
-        if (layer.strokeWidth > 0 && layer.stroke) ctx.stroke();
+        if (layer.strokeLineCap) ctx.lineCap = layer.strokeLineCap;
+        if (layer.strokeLineJoin) ctx.lineJoin = layer.strokeLineJoin;
+
+        // Custom SVG Path Data
+        if (layer.pathData) {
+          try {
+            const p2d = new Path2D(layer.pathData);
+            if (layer.fill && layer.fill !== 'transparent') ctx.fill(p2d);
+            if (layer.strokeWidth > 0 && layer.stroke && layer.stroke !== 'transparent') ctx.stroke(p2d);
+          } catch (e) {
+            console.warn('Could not render Path2D for layer:', layer.name, e);
+          }
+        } else {
+          ctx.beginPath();
+          if (layer.shapeType === 'rect') {
+            const r = Math.min(layer.borderRadius, layer.width / 2, layer.height / 2);
+            ctx.roundRect(layer.x, layer.y, layer.width, layer.height, r);
+          } else if (layer.shapeType === 'circle') {
+            ctx.ellipse(
+              layer.x + layer.width / 2,
+              layer.y + layer.height / 2,
+              layer.width / 2,
+              layer.height / 2,
+              0,
+              0,
+              Math.PI * 2
+            );
+          } else if (layer.shapeType === 'triangle') {
+            ctx.moveTo(layer.x + layer.width / 2, layer.y);
+            ctx.lineTo(layer.x + layer.width, layer.y + layer.height);
+            ctx.lineTo(layer.x, layer.y + layer.height);
+            ctx.closePath();
+          } else if (layer.shapeType === 'star') {
+            const points = layer.sides || 5;
+            const outerR = Math.min(layer.width, layer.height) / 2;
+            const innerR = outerR * 0.45;
+            const cx = layer.x + layer.width / 2;
+            const cy = layer.y + layer.height / 2;
+
+            for (let i = 0; i < points * 2; i++) {
+              const r = i % 2 === 0 ? outerR : innerR;
+              const angle = (i * Math.PI) / points - Math.PI / 2;
+              const x = cx + r * Math.cos(angle);
+              const y = cy + r * Math.sin(angle);
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+          }
+
+          if (layer.fill && layer.fill !== 'transparent') ctx.fill();
+          if (layer.strokeWidth > 0 && layer.stroke && layer.stroke !== 'transparent') ctx.stroke();
+        }
+
+        // Reset dash
+        ctx.setLineDash([]);
       }
 
       // 4. Drawing Layer
@@ -259,6 +285,12 @@ export const CanvasArea: React.FC = () => {
       // Photoshop formats: PSD, PSB, PSDT
       if (ext === 'psd' || ext === 'psb' || ext === 'psdt') {
         openPhotoshopFile(file);
+        return;
+      }
+
+      // Adobe Illustrator & SVG Vector Formats
+      if (ext === 'ai' || ext === 'svg' || ext === 'eps') {
+        openVectorFile(file);
         return;
       }
 

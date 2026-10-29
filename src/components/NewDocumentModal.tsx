@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Smartphone, Monitor, Printer, Image as ImageIcon, Film, FileText, Check } from 'lucide-react';
+import { X, Smartphone, Monitor, Printer, Image as ImageIcon, Film, FileText, Check, Sparkles } from 'lucide-react';
 import { useStudio } from '../context/StudioContext';
 
 interface PresetItem {
@@ -40,7 +40,15 @@ const DOCUMENT_PRESETS: PresetItem[] = [
   // Film & Video
   { id: 'f1', name: 'HDTV 1080p', width: 1920, height: 1080, resolution: 72, unit: 'px', category: 'film', description: '1920 x 1080 px (16:9)' },
   { id: 'f2', name: 'UHD 4K', width: 3840, height: 2160, resolution: 72, unit: 'px', category: 'film', description: '3840 x 2160 px (16:9)' },
-  { id: 'f3', name: 'DCI 8K', width: 7680, height: 4320, resolution: 72, unit: 'px', category: 'film', description: '7680 x 4320 px' }
+  { id: 'f3', name: 'DCI 8K', width: 7680, height: 4320, resolution: 72, unit: 'px', category: 'film', description: '7680 x 4320 px' },
+
+  // Adobe Illustrator / Vector Artboards
+  { id: 'vec1', name: 'Vector Artboard (1080p)', width: 1920, height: 1080, resolution: 300, unit: 'px', category: 'vector', description: '1920 x 1080 px Vector Canvas' },
+  { id: 'vec2', name: 'Logo Design (Square)', width: 800, height: 800, resolution: 300, unit: 'px', category: 'vector', description: '800 x 800 px Vector Symbol' },
+  { id: 'vec3', name: 'App Icon Master', width: 1024, height: 1024, resolution: 300, unit: 'px', category: 'vector', description: '1024 x 1024 px Apple/Google Store' },
+  { id: 'vec4', name: 'Vector Icon (Small)', width: 512, height: 512, resolution: 300, unit: 'px', category: 'vector', description: '512 x 512 px SVG Icon Grid' },
+  { id: 'vec5', name: 'Vector Social Banner', width: 1200, height: 630, resolution: 300, unit: 'px', category: 'vector', description: '1200 x 630 px Social Vector Card' },
+  { id: 'vec6', name: 'A4 Vector Print Sheet', width: 2480, height: 3508, resolution: 300, unit: 'px', category: 'vector', description: '210 x 297 mm Vector Graphics' }
 ];
 
 export const NewDocumentModal: React.FC = () => {
@@ -109,28 +117,37 @@ export const NewDocumentModal: React.FC = () => {
           </button>
         </div>
 
-        {/* Category Tabs Strip (Photoshop style) */}
+        {/* Category Tabs Strip (Photoshop / Illustrator style) */}
         <div className="h-9 bg-[#202020] border-b border-[#111111] flex items-center px-4 gap-6 text-[12px] font-medium overflow-x-auto">
           {[
             { id: 'web', label: 'Web', icon: Monitor },
+            { id: 'vector', label: 'Illustrator / Vector', icon: Sparkles },
             { id: 'photo', label: 'Photo', icon: ImageIcon },
             { id: 'print', label: 'Print', icon: Printer },
             { id: 'mobile', label: 'Mobile', icon: Smartphone },
             { id: 'film', label: 'Film & Video', icon: Film }
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveCategory(id)}
-              className={`flex items-center gap-1.5 py-1.5 border-b-2 transition-colors ${
-                activeCategory === id
-                  ? 'border-[#00a4e4] text-white font-semibold'
-                  : 'border-transparent text-[#888888] hover:text-[#dddddd]'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{label}</span>
-            </button>
-          ))}
+          ].map(({ id, label, icon: Icon }) => {
+            const isVector = id === 'vector';
+            const isActive = activeCategory === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActiveCategory(id)}
+                className={`flex items-center gap-1.5 py-1.5 border-b-2 transition-colors ${
+                  isActive
+                    ? isVector
+                      ? 'border-[#ff9a00] text-[#ff9a00] font-semibold'
+                      : 'border-[#00a4e4] text-white font-semibold'
+                    : isVector
+                    ? 'border-transparent text-[#ff9a00]/70 hover:text-[#ff9a00]'
+                    : 'border-transparent text-[#888888] hover:text-[#dddddd]'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Main Content: Left Presets Grid, Right Details Panel */}

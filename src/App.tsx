@@ -14,6 +14,7 @@ import { CameraRawFilterModal } from './components/CameraRawFilterModal';
 import { HueSaturationModal } from './components/HueSaturationModal';
 import { LevelsModal } from './components/LevelsModal';
 import { NewDocumentModal } from './components/NewDocumentModal';
+import { SvgCodeEditorModal } from './components/SvgCodeEditorModal';
 
 export const AppContent: React.FC = () => {
   return (
@@ -51,6 +52,7 @@ export const AppContent: React.FC = () => {
       <CameraRawFilterModal />
       <HueSaturationModal />
       <LevelsModal />
+      <SvgCodeEditorModal />
     </div>
   );
 };

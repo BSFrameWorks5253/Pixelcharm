@@ -8,12 +8,20 @@ import {
   DocumentState,
   SmartGuide,
   HistoryItem,
-  ShapeType
+  ShapeType,
+  WorkspaceMode
 } from '../types';
 import { DEFAULT_ADJUSTMENTS } from '../engine/imageFilters';
 import { DESIGN_TEMPLATES } from '../constants/templates';
 import { parsePhotoshopFile } from '../engine/photoshopImporter';
 import { exportToPhotoshopPsd } from '../engine/photoshopExporter';
+import {
+  parseSvgToLayers,
+  exportLayersToSvg,
+  exportLayersToAi,
+  parseAiFileBuffer,
+  applyPathfinder as runPathfinder
+} from '../engine/vectorEngine';
 
 export type ToolType =
   | 'select'
@@ -110,6 +118,18 @@ interface StudioContextType {
   openPhotoshopFile: (file: File | { name: string; buffer: ArrayBuffer }) => Promise<boolean>;
   exportPsd: () => Promise<void>;
 
+  // Vector / Adobe Illustrator Studio
+  workspaceMode: WorkspaceMode;
+  setWorkspaceMode: (mode: WorkspaceMode) => void;
+  openVectorFile: (file: File | { name: string; buffer?: ArrayBuffer; text?: string }) => Promise<boolean>;
+  exportSvgDocument: () => void;
+  exportAiDocument: () => void;
+  copySvgCode: () => Promise<boolean>;
+  applyPathfinder: (op: 'unite' | 'minus-front' | 'intersect' | 'exclude') => void;
+  showSvgEditorModal: boolean;
+  setShowSvgEditorModal: (show: boolean) => void;
+  setLayers: React.Dispatch<React.SetStateAction<Layer[]>>;
+
   // Modal Dialogs
   showNewDocModal: boolean;
   setShowNewDocModal: (show: boolean) => void;
@@ -167,7 +187,9 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>('main-headline');
   const [smartGuides, setSmartGuides] = useState<SmartGuide[]>([]);
 
-  // Modals
+  // Modals & Vector Studio Mode
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('photo');
+  const [showSvgEditorModal, setShowSvgEditorModal] = useState<boolean>(false);
   const [showNewDocModal, setShowNewDocModal] = useState<boolean>(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState<boolean>(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState<boolean>(false);
@@ -720,6 +742,141 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  // Vector / Adobe Illustrator Engine Integration
+  const openVectorFile = async (
+    file: File | { name: string; buffer?: ArrayBuffer; text?: string }
+  ): Promise<boolean> => {
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      let parsed;
+
+      if (ext === 'ai') {
+        const buffer = 'arrayBuffer' in file ? await file.arrayBuffer() : file.buffer;
+        if (!buffer) throw new Error('Could not read AI file data.');
+        parsed = await parseAiFileBuffer(buffer, file.name);
+      } else {
+        // SVG or text-based vector
+        let svgText = '';
+        if ('text' in file && typeof file.text === 'function') {
+          svgText = await file.text();
+        } else if ('text' in file && typeof file.text === 'string') {
+          svgText = file.text;
+        } else if ('arrayBuffer' in file) {
+          const buf = await file.arrayBuffer();
+          svgText = new TextDecoder('utf-8').decode(buf);
+        } else if (file.buffer) {
+          svgText = new TextDecoder('utf-8').decode(file.buffer);
+        }
+        parsed = parseSvgToLayers(svgText, documentState.width, documentState.height, file.name);
+      }
+
+      setDocumentState((prev) => ({
+        ...prev,
+        title: parsed.title,
+        width: parsed.width,
+        height: parsed.height,
+        background: parsed.background
+      }));
+      setLayers(parsed.layers);
+      setSelectedLayerId(parsed.layers[parsed.layers.length - 1]?.id || null);
+      setWorkspaceMode('vector'); // Seamlessly switch into Illustrator Vector mode!
+      recordHistory(
+        parsed.layers,
+        {
+          ...documentState,
+          width: parsed.width,
+          height: parsed.height,
+          background: parsed.background
+        },
+        `Opened Vector File: ${file.name}`
+      );
+      return true;
+    } catch (err) {
+      console.error('Failed to open vector file:', err);
+      alert(`Could not open vector file: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+  };
+
+  const exportSvgDocument = () => {
+    try {
+      const svgCode = exportLayersToSvg(
+        layers,
+        documentState.width,
+        documentState.height,
+        documentState.background
+      );
+      const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${documentState.title.toLowerCase().replace(/\s+/g, '-')}.svg`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export SVG:', err);
+      alert('Error generating SVG vector file.');
+    }
+  };
+
+  const exportAiDocument = () => {
+    try {
+      const aiBytes = exportLayersToAi(
+        layers,
+        documentState.width,
+        documentState.height,
+        documentState.title
+      );
+      const blob = new Blob([aiBytes as BlobPart], { type: 'application/illustrator' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${documentState.title.toLowerCase().replace(/\s+/g, '-')}.ai`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export AI:', err);
+      alert('Error generating Adobe Illustrator (.ai) file.');
+    }
+  };
+
+  const copySvgCode = async (): Promise<boolean> => {
+    try {
+      const svgCode = exportLayersToSvg(
+        layers,
+        documentState.width,
+        documentState.height,
+        documentState.background
+      );
+      await navigator.clipboard.writeText(svgCode);
+      return true;
+    } catch (err) {
+      console.error('Failed to copy SVG code:', err);
+      return false;
+    }
+  };
+
+  const applyPathfinder = (op: 'unite' | 'minus-front' | 'intersect' | 'exclude') => {
+    const shapeLayers = layers.filter((l) => l.type === 'shape') as ShapeLayer[];
+    if (shapeLayers.length < 2) {
+      alert('Pathfinder requires at least 2 shape layers on the canvas.');
+      return;
+    }
+
+    // Use selected layer and the one directly before/after it, or the top two shapes
+    let layerA = selectedLayer && selectedLayer.type === 'shape' ? (selectedLayer as ShapeLayer) : shapeLayers[0];
+    let layerB = shapeLayers.find((l) => l.id !== layerA.id) || shapeLayers[1];
+
+    const resultShape = runPathfinder(op, layerA, layerB);
+    const updatedLayers = layers
+      .filter((l) => l.id !== layerA.id && l.id !== layerB.id)
+      .concat(resultShape);
+
+    setLayers(updatedLayers);
+    setSelectedLayerId(resultShape.id);
+    recordHistory(updatedLayers, documentState, `Pathfinder: ${op.toUpperCase()}`);
+  };
+
   // Canvas Image Export
   const exportCanvasAsImage = (
     format: 'png' | 'jpeg' | 'webp' = 'png',
@@ -782,6 +939,8 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const ext = fileData.name.split('.').pop()?.toLowerCase();
         if (ext === 'psd' || ext === 'psb' || ext === 'psdt') {
           await openPhotoshopFile(fileData);
+        } else if (ext === 'ai' || ext === 'svg' || ext === 'eps') {
+          await openVectorFile(fileData);
         } else if (ext === 'pixycharm' || ext === 'anything-project' || ext === 'json') {
           const decoder = new TextDecoder('utf-8');
           const jsonStr = decoder.decode(fileData.buffer);
@@ -1037,6 +1196,16 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         importProjectJson,
         openPhotoshopFile,
         exportPsd,
+        workspaceMode,
+        setWorkspaceMode,
+        openVectorFile,
+        exportSvgDocument,
+        exportAiDocument,
+        copySvgCode,
+        applyPathfinder,
+        showSvgEditorModal,
+        setShowSvgEditorModal,
+        setLayers,
         showNewDocModal,
         setShowNewDocModal,
         createNewDocument,

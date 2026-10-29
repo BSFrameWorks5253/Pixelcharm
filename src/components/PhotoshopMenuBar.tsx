@@ -32,7 +32,14 @@ export const PhotoshopMenuBar: React.FC = () => {
     setShowLevelsModal,
     setActiveTool,
     showNewDocModal,
-    setShowNewDocModal
+    setShowNewDocModal,
+    workspaceMode,
+    setWorkspaceMode,
+    openVectorFile,
+    exportSvgDocument,
+    exportAiDocument,
+    copySvgCode,
+    setShowSvgEditorModal
   } = useStudio();
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -143,6 +150,8 @@ export const PhotoshopMenuBar: React.FC = () => {
       const ext = nativeFile.name.split('.').pop()?.toLowerCase();
       if (ext === 'psd' || ext === 'psb' || ext === 'psdt') {
         await openPhotoshopFile(nativeFile);
+      } else if (ext === 'ai' || ext === 'svg' || ext === 'eps') {
+        await openVectorFile(nativeFile);
       } else {
         const decoder = new TextDecoder('utf-8');
         const jsonStr = decoder.decode(nativeFile.buffer);
@@ -160,6 +169,8 @@ export const PhotoshopMenuBar: React.FC = () => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext === 'psd' || ext === 'psb' || ext === 'psdt') {
       await openPhotoshopFile(file);
+    } else if (ext === 'ai' || ext === 'svg' || ext === 'eps') {
+      await openVectorFile(file);
     } else {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -179,7 +190,7 @@ export const PhotoshopMenuBar: React.FC = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".psd,.psb,.psdt,.pixycharm,.anything-project,.json,image/*"
+        accept=".psd,.psb,.psdt,.ai,.svg,.eps,.pixelcharm,.pixycharm,.anything-project,.json,image/*"
         onChange={handleWebFileChange}
         className="hidden"
       />
@@ -228,7 +239,7 @@ export const PhotoshopMenuBar: React.FC = () => {
                   onClick={handleOpenNativeOrWeb}
                   className="w-full px-4 py-1.5 flex justify-between hover:bg-[#007acc] hover:text-white text-left"
                 >
-                  <span>Open Photoshop (.psd, .psb)...</span>
+                  <span>Open (.psd, .ai, .svg, img)...</span>
                   <span className="text-[#888] font-mono">Ctrl+O</span>
                 </button>
                 <button
@@ -261,6 +272,54 @@ export const PhotoshopMenuBar: React.FC = () => {
                 >
                   <span>Export Photoshop (.PSD)...</span>
                   <span className="text-[#888] font-mono">Ctrl+Shift+S</span>
+                </button>
+                <div className="h-[1px] bg-[#3a3a3a] my-1" />
+                {/* Adobe Illustrator & Vector Export */}
+                <button
+                  onClick={() => {
+                    exportSvgDocument();
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-4 py-1.5 flex justify-between hover:bg-[#ff9a00] hover:text-black text-left font-medium"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[10px] px-1 bg-[#ff9a00]/20 text-[#ff9a00] rounded font-bold">SVG</span>
+                    <span>Export Vector as SVG...</span>
+                  </span>
+                  <span className="text-[#888] font-mono">.svg</span>
+                </button>
+                <button
+                  onClick={() => {
+                    exportAiDocument();
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-4 py-1.5 flex justify-between hover:bg-[#ff9a00] hover:text-black text-left font-medium"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[10px] px-1 bg-[#ff9a00] text-black rounded font-bold">Ai</span>
+                    <span>Export Adobe Illustrator (.ai)...</span>
+                  </span>
+                  <span className="text-[#888] font-mono">.ai</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    await copySvgCode();
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-4 py-1.5 flex justify-between hover:bg-[#007acc] hover:text-white text-left"
+                >
+                  <span>Copy SVG Code to Clipboard</span>
+                  <span className="text-[#888] font-mono">Ctrl+Alt+C</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSvgEditorModal(true);
+                    setActiveMenu(null);
+                  }}
+                  className="w-full px-4 py-1.5 flex justify-between hover:bg-[#007acc] hover:text-white text-left text-[#38bdf8]"
+                >
+                  <span>Inspect & Edit SVG Code...</span>
+                  <span className="text-[#888] font-mono">XML</span>
                 </button>
                 <div className="h-[1px] bg-[#3a3a3a] my-1" />
                 <button
@@ -634,17 +693,51 @@ export const PhotoshopMenuBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Center: Active Document Title */}
-      <div className="text-[11px] text-[#888] font-medium hidden md:block">
-        Pixelcharm Masterpiece — Adobe Photoshop Workspace
+      {/* Center: Active Document Title & Workspace Indicator */}
+      <div className="text-[11px] font-medium hidden md:flex items-center gap-2">
+        <span className="text-[#888]">Pixelcharm Studio</span>
+        <span className="text-[#444]">—</span>
+        {workspaceMode === 'vector' ? (
+          <span className="text-[#ff9a00] font-semibold flex items-center gap-1">
+            <span className="w-3.5 h-3.5 rounded bg-[#ff9a00] text-black font-black text-[7px] flex items-center justify-center">Ai</span>
+            Adobe Illustrator Vector Workspace
+          </span>
+        ) : (
+          <span className="text-[#00a4e4] font-semibold flex items-center gap-1">
+            <span className="w-3.5 h-3.5 rounded bg-[#001e36] border border-[#00a4e4] text-[#00a4e4] font-bold text-[7px] flex items-center justify-center">Ps</span>
+            Adobe Photoshop Photo Workspace
+          </span>
+        )}
       </div>
 
       {/* Right: Workspace & Window Controls */}
-      <div className="flex items-center gap-3">
-        {/* Workspace Switcher */}
-        <div className="flex items-center gap-1.5 text-[11px] bg-[#222222] px-2 py-0.5 rounded border border-[#383838]">
-          <span className="text-[#aaa]">Workspace:</span>
-          <span className="text-white font-medium">Essentials (Default)</span>
+      <div className="flex items-center gap-2">
+        {/* Adobe Persona / Workspace Switcher (Ps / Ai) */}
+        <div className="flex items-center bg-[#181818] rounded border border-[#333333] p-0.5 text-[11px]">
+          <button
+            onClick={() => setWorkspaceMode('photo')}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded transition-all ${
+              workspaceMode === 'photo'
+                ? 'bg-[#001e36] text-[#00a4e4] font-bold border border-[#00a4e4]/60 shadow-sm'
+                : 'text-[#888888] hover:text-white'
+            }`}
+            title="Switch to Photoshop Photo / Raster Mode"
+          >
+            <span className="text-[9px] font-black">Ps</span>
+            <span>Photo</span>
+          </button>
+          <button
+            onClick={() => setWorkspaceMode('vector')}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded transition-all ${
+              workspaceMode === 'vector'
+                ? 'bg-[#331b00] text-[#ff9a00] font-bold border border-[#ff9a00]/60 shadow-sm'
+                : 'text-[#888888] hover:text-[#ff9a00]'
+            }`}
+            title="Switch to Adobe Illustrator Vector & SVG Mode"
+          >
+            <span className="text-[9px] font-black">Ai</span>
+            <span>Vector</span>
+          </button>
         </div>
 
         {/* Electron Window Controls (if running on desktop) */}
