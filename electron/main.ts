@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme } from 'electron
 import path from 'path';
 import fs from 'fs';
 import { resolveChildAppLoaderConfig, showChildAppSplash, closeChildAppSplash, ChildAppLoaderConfig } from './splash';
+import { registerUpdateIpc } from './autoUpdater';
 
 // Windows Taskbar & Action Center Model ID for dedicated window grouping
 if (process.platform === 'win32') {
@@ -173,6 +174,7 @@ app.whenReady().then(() => {
     }
   });
   ipcMain.on('window:close', () => mainWindow?.close());
+  registerUpdateIpc(() => mainWindow);
 
   // 1. Resolve dynamic Anything Loader configuration for Pixelcharm
   const APP_ID = 'pixelcharm';

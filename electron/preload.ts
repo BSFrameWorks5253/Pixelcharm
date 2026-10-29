@@ -9,6 +9,9 @@ export interface ElectronAPI {
   maximizeWindow: () => void;
   closeWindow: () => void;
   onFileOpenedFromExplorer: (callback: (fileData: { name: string; buffer: ArrayBuffer }) => void) => void;
+  checkForUpdates?: () => Promise<any>;
+  installUpdate?: () => Promise<any>;
+  onUpdateAvailable?: (callback: (data: any) => void) => void;
 }
 
 const api: ElectronAPI = {
