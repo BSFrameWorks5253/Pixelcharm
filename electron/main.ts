@@ -17,6 +17,13 @@ let splashCompleted = false;
 
 // Only use dev server when explicitly running in live development mode with dedicated port
 const isDev = process.env.NODE_ENV === 'development' && !!process.env.VITE_DEV_SERVER_URL;
+try {
+  const appDataRoot = app.getPath('appData');
+  const targetUserData = path.join(appDataRoot, isDev ? 'Pixelcharm_Dev' : 'Pixelcharm');
+  app.setPath('userData', targetUserData);
+} catch (err) {
+  console.warn('[Pixelcharm] Non-fatal warning setting userData path:', err);
+}
 
 function getAppIndexPath(): string {
   const candidates = [

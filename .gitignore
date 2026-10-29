@@ -26,3 +26,8 @@ yarn-error.log*
 # Operating System files
 .DS_Store
 Thumbs.db
+
+
+# Temporary runtime and cache artifacts
+.temp_user_data*
+.temp*

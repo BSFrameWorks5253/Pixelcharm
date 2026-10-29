@@ -7,6 +7,20 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5185,
-    host: true
-  }
+    host: true,
+    watch: {
+      ignored: [
+        '**/.temp_user_data*/**',
+        '**/.temp*/**',
+        '**/dist-electron/**',
+        '**/dist/**',
+        '**/release/**',
+        '**/build/**',
+        '**/*.db',
+        '**/*.db-wal',
+        '**/*.journal',
+        '**/.git/**',
+      ],
+    },
+  },
 });
