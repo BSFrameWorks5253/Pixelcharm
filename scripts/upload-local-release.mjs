@@ -114,8 +114,18 @@ async function main() {
   // Check if asset already exists
   const existingAsset = (release.assets || []).find(a => a.name === exeName);
   if (existingAsset) {
-    console.log(`Asset ${exeName} already uploaded: ${existingAsset.browser_download_url}`);
-    return;
+    console.log(`Removing old asset ${exeName} (ID: ${existingAsset.id}) to overwrite with fresh build...`);
+    await ghRequest({
+      hostname: 'api.github.com',
+      path: `/repos/${owner}/${repo}/releases/assets/${existingAsset.id}`,
+      method: 'DELETE',
+      headers: {
+        'User-Agent': 'Pixelcharm-Uploader',
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    console.log(`Old asset removed.`);
   }
 
   // Upload asset
